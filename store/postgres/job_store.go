@@ -65,21 +65,36 @@ func (s *PostgresJobStore) GetByID(ctx context.Context, jobID uuid.UUID) (*model
 }
 
 func (s *PostgresJobStore) Complete(ctx context.Context, jobID uuid.UUID) error {
-	query := `
-		UPDATE jobs SET status = 'completed', updated_at = NOW() WHERE id = $1
-	`
-	
-	_, err := s.db.Exec(ctx, query, jobID)
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `UPDATE jobs SET status = 'completed', updated_at = now() WHERE id = $1`, jobID)
 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	_, err = tx.Exec(ctx, `INSERT INTO job_events (job_id, event) VALUES ($1, 'succeeded')`, jobID)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *PostgresJobStore) Fail(ctx context.Context, jobID uuid.UUID, errMsg string) error {
-	query := `
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var newStatus string
+	err = tx.QueryRow(ctx,`
 		UPDATE jobs
 		SET 
 			status = CASE WHEN attempts >= max_attempts THEN 'dead' ELSE 'pending' END,
@@ -87,14 +102,24 @@ func (s *PostgresJobStore) Fail(ctx context.Context, jobID uuid.UUID, errMsg str
 			run_at = CASE WHEN attempts >= max_attempts THEN run_at ELSE now() + INTERVAL '5 seconds' * power(2, attempts) END,
 			updated_at = now()
 		WHERE id = $1
-	`
-	_, err := s.db.Exec(ctx, query, jobID, errMsg)
+		RETURNING status
+	`, jobID, errMsg).Scan(&newStatus)
 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	event := "retried"
+	if newStatus == "dead" {
+		event = "dead_lettered"
+	}
+
+	_, err = tx.Exec(ctx, `INSERT INTO job_events (job_id, event, detail) VALUES ($1, $2, $3)`, jobID, event, errMsg)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.Job, error) {
