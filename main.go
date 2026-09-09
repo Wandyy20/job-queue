@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+
+	"github.com/Wandyy20/job-queue/models"
+	"github.com/Wandyy20/job-queue/store/postgres"
 )
 
 func main() {
@@ -31,4 +36,22 @@ func main() {
 	}
 
 	log.Println("connected to database successfully")
+
+	jobStore := postgres.NewPostgresJobStore(pool)
+	jobEventStore := postgres.NewPostgresJobEventStore(pool)
+	_ = jobEventStore
+
+	testJob := &models.Job{
+		Type:        "test_job",
+		Payload:     json.RawMessage(`{"message":"hello"}`),
+		MaxAttempts: 3,
+		RunAt:       time.Now(),
+	}
+
+	err = jobStore.Enqueue(context.Background(), testJob)
+	if err != nil {
+		log.Fatalf("failed to enqueue test job: %v", err)
+	}
+
+	log.Printf("job enqueued successfully with ID: %s", testJob.ID)
 }
