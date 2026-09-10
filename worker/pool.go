@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/Wandyy20/job-queue/models"
@@ -14,6 +15,7 @@ type Pool struct {
 	jobStore store.JobStore
 	registry *Registry
 	numWorkers int 
+	wg sync.WaitGroup
 }
 
 func NewPool(jobStore store.JobStore, registry *Registry, numWorkers int) *Pool{
@@ -27,11 +29,13 @@ func NewPool(jobStore store.JobStore, registry *Registry, numWorkers int) *Pool{
 func (p *Pool) Start(ctx context.Context) {
 	for i := 0; i < p.numWorkers; i++ {
 		workerID := fmt.Sprintf("worker-%d", i)
+		p.wg.Add(1)
 		go p.runWorker(ctx, workerID)
 	}
 }
 
 func (p *Pool) runWorker(ctx context.Context, workerID string) {
+	defer p.wg.Done()
 	for {
 		select {
 		case <- ctx.Done():
@@ -68,4 +72,8 @@ func (p *Pool) processJob(ctx context.Context, job *models.Job) {
 	}
 
 	p.jobStore.Complete(ctx, job.ID)
+}
+
+func (p *Pool) Wait() {
+	p.wg.Wait()
 }

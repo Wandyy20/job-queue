@@ -4,7 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -44,11 +45,20 @@ func main() {
 
 	registry := worker.NewRegistry()
 	registry.Register("test_job", handlers.HandleTestJob)
-	pool := worker.NewPool(jobStore, registry, 3)
+	workerPool := worker.NewPool(jobStore, registry, 3)
 	ctx, cancel := context.WithCancel(context.Background())
-	pool.Start(ctx)
+	workerPool.Start(ctx)
 
 	log.Println("worker pool started")
-	time.Sleep(30 * time.Second)
+	
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigChan
+
+	log.Println("shutdown signal received, stopping workers...")
 	cancel()
+
+	workerPool.Wait()
+	log.Println("all workers stopped, exiting")
 }
