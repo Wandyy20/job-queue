@@ -39,19 +39,6 @@ func main() {
 
 	jobStore := postgres.NewPostgresJobStore(pool)
 	jobEventStore := postgres.NewPostgresJobEventStore(pool)
+	_ = jobStore
 	_ = jobEventStore
-
-	testJob := &models.Job{
-		Type:        "test_job",
-		Payload:     json.RawMessage(`{"message":"hello"}`),
-		MaxAttempts: 3,
-		RunAt:       time.Now(),
-	}
-
-	err = jobStore.Enqueue(context.Background(), testJob)
-	if err != nil {
-		log.Fatalf("failed to enqueue test job: %v", err)
-	}
-
-	log.Printf("job enqueued successfully with ID: %s", testJob.ID)
 }
