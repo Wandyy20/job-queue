@@ -21,11 +21,12 @@ func (s *PostgresJobStore) Enqueue(ctx context.Context, job *models.Job) error {
 	query := `
 		INSERT INTO jobs (type, payload, status, max_attempts, run_at)
 		VALUES ($1, $2, 'pending', $3, $4)
-		RETURNING id, attempts, created_at, updated_at
+		RETURNING id, status, attempts, created_at, updated_at
 	`
 
 	err := s.db.QueryRow(ctx, query,
 		job.Type,
+		job.Status,
 		job.Payload,
 		job.MaxAttempts,
 		job.RunAt,
@@ -169,7 +170,7 @@ func (s *PostgresJobStore) List(ctx context.Context, status string) ([]*models.J
 	}
 	defer rows.Close()
 
-	var jobs []*models.Job
+	jobs := make([]*models.Job, 0)
 	for rows.Next() {
 		var job models.Job
 		err := rows.Scan(
