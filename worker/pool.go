@@ -65,13 +65,13 @@ func (p *Pool) processJob(ctx context.Context, job *models.Job) {
 		return
 	}
 
-	err := handler(ctx, job.Payload)
+	result, err := handler(ctx, job.Payload)
 	if err != nil {
 		p.jobStore.Fail(ctx, job.ID, err.Error())
 		return
 	}
 
-	p.jobStore.Complete(ctx, job.ID)
+	p.jobStore.Complete(ctx, job.ID, result)
 }
 
 func (p *Pool) Wait() {

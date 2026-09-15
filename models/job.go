@@ -19,6 +19,7 @@ type Job struct {
 	LastError   *string     
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Result 		*json.RawMessage
 }
 
 type JobEvent struct {

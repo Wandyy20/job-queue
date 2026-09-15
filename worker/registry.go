@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-type HandlerFunc func(ctx context.Context, payload json.RawMessage) error
+type HandlerFunc func(ctx context.Context, payload json.RawMessage) (json.RawMessage, error)
 
 type Registry struct {
 	handlers map[string]HandlerFunc

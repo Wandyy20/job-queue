@@ -2,11 +2,13 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"github.com/jackc/pgx/v5" 
-	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/Wandyy20/job-queue/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresJobStore struct {
@@ -26,11 +28,10 @@ func (s *PostgresJobStore) Enqueue(ctx context.Context, job *models.Job) error {
 
 	err := s.db.QueryRow(ctx, query,
 		job.Type,
-		job.Status,
 		job.Payload,
 		job.MaxAttempts,
 		job.RunAt,
-	).Scan(&job.ID, &job.Attempts, &job.CreatedAt, &job.UpdatedAt)
+	).Scan(&job.ID, &job.Status, &job.Attempts, &job.CreatedAt, &job.UpdatedAt)
 
 	if err != nil {
 		return err
@@ -42,7 +43,7 @@ func (s *PostgresJobStore) Enqueue(ctx context.Context, job *models.Job) error {
 func (s *PostgresJobStore) GetByID(ctx context.Context, jobID uuid.UUID) (*models.Job, error) {
 	var job models.Job
 
-	query := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, created_at, updated_at FROM jobs WHERE id = $1`
+	query := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, result, created_at, updated_at FROM jobs WHERE id = $1`
 
 	err := s.db.QueryRow(ctx, query, jobID).Scan(
 		&job.ID,
@@ -55,6 +56,7 @@ func (s *PostgresJobStore) GetByID(ctx context.Context, jobID uuid.UUID) (*model
 		&job.LockedAt,
 		&job.LockedBy,
 		&job.LastError,
+		&job.Result,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 	)
@@ -65,14 +67,14 @@ func (s *PostgresJobStore) GetByID(ctx context.Context, jobID uuid.UUID) (*model
 	return &job, nil
 }
 
-func (s *PostgresJobStore) Complete(ctx context.Context, jobID uuid.UUID) error {
+func (s *PostgresJobStore) Complete(ctx context.Context, jobID uuid.UUID, result json.RawMessage) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Exec(ctx, `UPDATE jobs SET status = 'completed', updated_at = now() WHERE id = $1`, jobID)
+	_, err = tx.Exec(ctx, `UPDATE jobs SET status = 'completed', result = $2, updated_at = now() WHERE id = $1`, jobID, result)
 
 	if err != nil {
 		return err
@@ -135,7 +137,7 @@ func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.
 			FOR UPDATE SKIP LOCKED
 			LIMIT 1
 		)
-		RETURNING id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, created_at, updated_at
+		RETURNING id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, result, created_at, updated_at
 	`
 	err := s.db.QueryRow(ctx, query, workerID).Scan(
 		&job.ID,
@@ -148,6 +150,7 @@ func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.
 		&job.LockedAt,
 		&job.LockedBy,
 		&job.LastError,
+		&job.Result,
 		&job.CreatedAt,
 		&job.UpdatedAt,
 	)
@@ -162,7 +165,7 @@ func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.
 }
 
 func (s *PostgresJobStore) List(ctx context.Context, status string) ([]*models.Job, error) {
-	query := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, created_at, updated_at FROM jobs WHERE status = $1 ORDER BY created_at DESC`
+	query := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, result, created_at, updated_at FROM jobs WHERE status = $1 ORDER BY created_at DESC`
 
 	rows, err := s.db.Query(ctx, query, status)
 	if err != nil {
@@ -184,6 +187,7 @@ func (s *PostgresJobStore) List(ctx context.Context, status string) ([]*models.J
 			&job.LockedAt,
 			&job.LockedBy,
 			&job.LastError,
+			&job.Result,
 			&job.CreatedAt,
 			&job.UpdatedAt,
 		)

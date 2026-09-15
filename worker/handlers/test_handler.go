@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func HandleTestJob(ctx context.Context, payload json.RawMessage) error {
+func HandleTestJob(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
 	fmt.Printf("Processing test job with payload: %s\n", payload)
-	return  nil
+	return json.RawMessage(`{"status":"ok"}`), nil
 }

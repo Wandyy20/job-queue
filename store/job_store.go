@@ -2,14 +2,16 @@ package store
 
 import (
 	"context"
-	"github.com/google/uuid"
+	"encoding/json"
+
 	"github.com/Wandyy20/job-queue/models"
+	"github.com/google/uuid"
 )
 
 type JobStore interface {
 	Enqueue(ctx context.Context, job *models.Job) error
 	Claim(ctx context.Context, workerID string) (*models.Job, error)
-	Complete(ctx context.Context, jobID uuid.UUID) error
+	Complete(ctx context.Context, jobID uuid.UUID, result json.RawMessage) error
 	Fail(ctx context.Context, jobID uuid.UUID, errMsg string) error
 	GetByID(ctx context.Context, jobID uuid.UUID) (*models.Job, error)
 	List(ctx context.Context, status string) ([]*models.Job, error)
