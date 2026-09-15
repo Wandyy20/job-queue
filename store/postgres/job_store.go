@@ -195,3 +195,29 @@ func (s *PostgresJobStore) List(ctx context.Context, status string) ([]*models.J
 	return jobs, rows.Err()
 }
 
+func (s *PostgresJobStore) Cancel(ctx context.Context, jobID uuid.UUID) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	result, err := tx.Exec(ctx, `
+		UPDATE jobs SET status = 'cancelled', updated_at = now()
+		WHERE id = $1 AND status = 'pending'
+	`, jobID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("job not found or not cancellable")
+	}
+
+	_, err = tx.Exec(ctx, `INSERT into job_events (job_id, event) VALUES ($1, 'cancelled')`, jobID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

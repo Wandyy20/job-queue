@@ -58,6 +58,7 @@ func main() {
 	r.Get("/jobs", jobHandler.GetByStatus)
 	r.Get("/jobs/{id}", jobHandler.GetJob)
 	r.Get("/jobs/{id}/events", jobHandler.GetJobEvents)
+	r.Delete("/jobs/{id}", jobHandler.CancelJob)
 
 	srv := &http.Server{
 		Addr:    ":8080",

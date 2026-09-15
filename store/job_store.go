@@ -13,6 +13,7 @@ type JobStore interface {
 	Fail(ctx context.Context, jobID uuid.UUID, errMsg string) error
 	GetByID(ctx context.Context, jobID uuid.UUID) (*models.Job, error)
 	List(ctx context.Context, status string) ([]*models.Job, error)
+	Cancel(ctx context.Context, jobID uuid.UUID) (error)
 }
 
 type JobEventStore interface {

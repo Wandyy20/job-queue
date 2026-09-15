@@ -101,3 +101,26 @@ func (h *JobHandler) GetJobEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jobEvents)
 }
+
+func (h *JobHandler) CancelJob(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	jobID, err := uuid.Parse(idParam)
+	if err != nil {
+		http.Error(w, "invalid job id", http.StatusBadRequest)
+		return
+	}
+
+	err = h.jobStore.Cancel(r.Context(), jobID)
+
+	if err != nil {
+		if err.Error() == "job not found or not cancellable" {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		http.Error(w, "failed to cancel job", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+
+}
