@@ -12,16 +12,16 @@ import (
 )
 
 type Pool struct {
-	jobStore store.JobStore
-	registry *Registry
-	numWorkers int 
-	wg sync.WaitGroup
+	jobStore   store.JobStore
+	registry   *Registry
+	numWorkers int
+	wg         sync.WaitGroup
 }
 
-func NewPool(jobStore store.JobStore, registry *Registry, numWorkers int) *Pool{
+func NewPool(jobStore store.JobStore, registry *Registry, numWorkers int) *Pool {
 	return &Pool{
-		jobStore: jobStore,
-		registry: registry,
+		jobStore:   jobStore,
+		registry:   registry,
 		numWorkers: numWorkers,
 	}
 }
@@ -38,7 +38,7 @@ func (p *Pool) runWorker(ctx context.Context, workerID string) {
 	defer p.wg.Done()
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			log.Printf("%s shutting down", workerID)
 			return
 		default:

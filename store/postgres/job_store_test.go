@@ -2,15 +2,15 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/Wandyy20/job-queue/models"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"os"
 	"sync"
 	"testing"
-	"encoding/json"
 	"time"
-	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/Wandyy20/job-queue/models"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func setupTestDB(t *testing.T) *pgxpool.Pool {
@@ -46,7 +46,7 @@ func TestClaimWorkers(t *testing.T) {
 	var mu sync.Mutex
 	successCount := 0
 
-	for i := 0; i < numWorkers ; i++ {
+	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()

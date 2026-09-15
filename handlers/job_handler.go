@@ -12,7 +12,7 @@ import (
 )
 
 type JobHandler struct {
-	jobStore store.JobStore
+	jobStore      store.JobStore
 	jobEventStore store.JobEventStore
 }
 
@@ -62,7 +62,7 @@ func (h *JobHandler) GetJob(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid job id", http.StatusBadRequest)
 		return
 	}
-	
+
 	job, err := h.jobStore.GetByID(r.Context(), jobID)
 	if err != nil {
 		http.Error(w, "Failed to get job", http.StatusInternalServerError)

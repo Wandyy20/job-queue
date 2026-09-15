@@ -2,8 +2,8 @@ package models
 
 import (
 	"encoding/json"
-	"time"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Job struct {
@@ -14,18 +14,18 @@ type Job struct {
 	Attempts    int
 	MaxAttempts int
 	RunAt       time.Time
-	LockedAt    *time.Time 
-	LockedBy    *string    
-	LastError   *string     
+	LockedAt    *time.Time
+	LockedBy    *string
+	LastError   *string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Result 		*json.RawMessage
+	Result      *json.RawMessage
 }
 
 type JobEvent struct {
-	ID uuid.UUID
-	JobID uuid.UUID
-	Event string
-	Detail *string
+	ID        uuid.UUID
+	JobID     uuid.UUID
+	Event     string
+	Detail    *string
 	CreatedAt time.Time
 }

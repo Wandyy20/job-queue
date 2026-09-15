@@ -97,7 +97,7 @@ func (s *PostgresJobStore) Fail(ctx context.Context, jobID uuid.UUID, errMsg str
 	defer tx.Rollback(ctx)
 
 	var newStatus string
-	err = tx.QueryRow(ctx,`
+	err = tx.QueryRow(ctx, `
 		UPDATE jobs
 		SET 
 			status = CASE WHEN attempts >= max_attempts THEN 'dead' ELSE 'pending' END,
@@ -157,9 +157,9 @@ func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil 
+			return nil, nil
 		}
-		return nil, err  
+		return nil, err
 	}
 	return &job, nil
 }
