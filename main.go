@@ -48,6 +48,7 @@ func main() {
 	registry.Register("test_job", jobHandlers.HandleTestJob)
 	registry.Register("send_webhook", jobHandlers.HandleSendWebhook)
 	registry.Register("summarize_text", jobHandlers.HandleSummarizeText)
+	registry.Register("resize_image", jobHandlers.HandleResizeImage)
 	workerPool := worker.NewPool(jobStore, registry, 3)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerPool.Start(ctx)
