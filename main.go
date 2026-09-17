@@ -51,6 +51,8 @@ func main() {
 	registry.Register("resize_image", jobHandlers.HandleResizeImage)
 	registry.Register("generate_pdf_report", jobHandlers.HandleGeneratePDFReport)
 	registry.Register("csv_export", jobHandlers.HandleCSVExport)
+	registry.Register("classify_sentiment", jobHandlers.HandleClassifySentiment)
+	registry.Register("translate_text", jobHandlers.HandleTranslateText)
 	workerPool := worker.NewPool(jobStore, registry, 3)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerPool.Start(ctx)
