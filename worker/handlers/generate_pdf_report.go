@@ -11,7 +11,7 @@ import (
 )
 
 type PDFReportPayload struct {
-	Title string `json:"title"`
+	Title string   `json:"title"`
 	Items []string `json:"items"`
 }
 
@@ -42,7 +42,7 @@ func HandleGeneratePDFReport(ctx context.Context, payload json.RawMessage) (json
 
 	result := map[string]interface{}{
 		"pdf_base64": resultBase64,
-		"title": input.Title,
+		"title":      input.Title,
 	}
 
 	resultJSON, err := json.Marshal(result)
