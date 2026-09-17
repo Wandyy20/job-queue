@@ -50,6 +50,7 @@ func main() {
 	registry.Register("summarize_text", jobHandlers.HandleSummarizeText)
 	registry.Register("resize_image", jobHandlers.HandleResizeImage)
 	registry.Register("generate_pdf_report", jobHandlers.HandleGeneratePDFReport)
+	registry.Register("csv_export", jobHandlers.HandleCSVExport)
 	workerPool := worker.NewPool(jobStore, registry, 3)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerPool.Start(ctx)
