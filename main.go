@@ -53,6 +53,7 @@ func main() {
 	registry.Register("csv_export", jobHandlers.HandleCSVExport)
 	registry.Register("classify_sentiment", jobHandlers.HandleClassifySentiment)
 	registry.Register("translate_text", jobHandlers.HandleTranslateText)
+	registry.Register("classify_toxic_comment", jobHandlers.HandleClassifyToxicComment)
 	workerPool := worker.NewPool(jobStore, registry, 3)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerPool.Start(ctx)
