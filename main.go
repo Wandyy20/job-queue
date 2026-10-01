@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
@@ -62,6 +63,14 @@ func main() {
 
 	jobHandler := httpHandlers.NewJobHandler(jobStore, jobEventStore)
 	r := chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		AllowCredentials: false,
+	}))
+
 	r.Post("/jobs", jobHandler.CreateJob)
 	r.Get("/jobs", jobHandler.GetByStatus)
 	r.Get("/jobs/{id}", jobHandler.GetJob)

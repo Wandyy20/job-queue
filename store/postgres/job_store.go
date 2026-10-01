@@ -165,9 +165,20 @@ func (s *PostgresJobStore) Claim(ctx context.Context, workerID string) (*models.
 }
 
 func (s *PostgresJobStore) List(ctx context.Context, status string) ([]*models.Job, error) {
-	query := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, result, created_at, updated_at FROM jobs WHERE status = $1 ORDER BY created_at DESC`
+	var query string 
+	var rows pgx.Rows
+	var err error
 
-	rows, err := s.db.Query(ctx, query, status)
+	baseQuery := `SELECT id, type, payload, status, attempts, max_attempts, run_at, locked_at, locked_by, last_error, result, created_at, updated_at FROM jobs`
+
+	if status == "" {
+		query = baseQuery + " ORDER BY created_at DESC"
+		rows, err = s.db.Query(ctx, query)
+	} else {
+		query = baseQuery + " WHERE status = $1 ORDER BY created_at DESC"
+		rows, err = s.db.Query(ctx, query, status)
+	}
+	
 	if err != nil {
 		return nil, err
 	}
