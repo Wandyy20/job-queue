@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createJob } from "../api/jobsApi";
+import useToast from "../hooks/useToast";
 
 const JOB_TYPES = [
   { value: "test_job", icon: "○", fields: ["text"] },
@@ -25,12 +26,13 @@ const FIELD_LABELS = {
   items: "Items (one per line)",
   headers: "Headers (comma separated)",
   rows: "Rows (one per line, comma separated)",
-}
+};
 
 export default function JobForm({ onJobCreated }) {
   const [type, setType] = useState("summarize_text");
   const [values, setValues] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const showToast = useToast();
 
   const activeType = JOB_TYPES.find((t) => t.value === type);
 
@@ -77,25 +79,26 @@ export default function JobForm({ onJobCreated }) {
   }
 
   async function handleSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  const emptyField = activeType.fields.find((f) => !values[f] || !values[f].trim());
-  if (emptyField) {
-    alert(`${FIELD_LABELS[emptyField] || emptyField} is required`);
-    return;
-  }
+    const emptyField = activeType.fields.find((f) => !values[f] || !values[f].trim());
+    if (emptyField) {
+      showToast(`${FIELD_LABELS[emptyField] || emptyField} is required`, "error");
+      return;
+    }
 
-  setSubmitting(true);
-  try {
-    await createJob(type, buildPayload());
-    setValues({});
-    onJobCreated?.();
-  } catch (err) {
-    alert("Failed to submit job: " + err.message);
-  } finally {
-    setSubmitting(false);
+    setSubmitting(true);
+    try {
+      await createJob(type, buildPayload());
+      setValues({});
+      showToast("Job submitted successfully");
+      onJobCreated?.();
+    } catch (err) {
+      showToast("Failed to submit job: " + err.message, "error");
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
 
   return (
     <form
@@ -113,7 +116,10 @@ export default function JobForm({ onJobCreated }) {
             <button
               key={t.value}
               type="button"
-              onClick={() => { setType(t.value); setValues({}); }}
+              onClick={() => {
+                setType(t.value);
+                setValues({});
+              }}
               className={`px-3 py-1.5 rounded-md text-xs font-mono flex items-center gap-1.5 border transition-colors ${
                 type === t.value
                   ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"

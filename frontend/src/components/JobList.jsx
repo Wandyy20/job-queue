@@ -55,10 +55,9 @@ export default function JobList({ refreshTrigger, selectedJobId, onSelectJob }) 
     const interval = setInterval(fetchJobs, 3000);
     return () => clearInterval(interval);
   }, [refreshTrigger]);
+
   const filtered = filter === "all" ? jobs : jobs.filter((j) => j.Status === filter);
   const tabs = ["all", "pending", "processing", "completed", "failed", "dead"];
-
-  if (loading) return <p className="p-4 text-gray-500">Loading jobs...</p>;
 
   return (
     <div className="space-y-4">
@@ -80,41 +79,52 @@ export default function JobList({ refreshTrigger, selectedJobId, onSelectJob }) 
         ))}
       </div>
 
-      <div className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] overflow-hidden">
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-[var(--text-muted)] text-sm">
-            No jobs here yet.
-          </div>
-        )}
-        {filtered.map((job) => (
-          <button
-            key={job.ID}
-            onClick={() => onSelectJob(job.ID)}
-            className="w-full text-left flex items-center gap-4 p-3 transition-colors border-l-2"
-            style={{
-              borderLeftColor: STATUS_COLOR[job.Status] || "#71717A",
-              backgroundColor: selectedJobId === job.ID ? "#1A1A22" : "var(--surface)",
-            }}
-          >
-            <span className="text-lg text-[var(--text-muted)] w-5 text-center">
-              {TYPE_ICONS[job.Type] || "•"}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{job.Type}</div>
-              <div className="font-mono text-xs text-[var(--text-muted)] truncate">
-                {job.ID}
-              </div>
+      {loading ? (
+        <div className="p-3 space-y-2 rounded-lg border border-[var(--border)]">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-12 bg-[var(--surface)] border border-[var(--border)] rounded-md animate-pulse"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] overflow-hidden">
+          {filtered.length === 0 && (
+            <div className="p-8 text-center text-[var(--text-muted)] text-sm">
+              No jobs here yet.
             </div>
-            <StatusDot status={job.Status} />
-            <span className="text-xs text-[var(--text-muted)] font-mono">
-              {job.Attempts}/{job.MaxAttempts}
-            </span>
-            <span className="text-xs text-[var(--text-muted)] w-36 text-right font-mono">
-              {formatDateTime(job.CreatedAt)}
-            </span>
-          </button>
-        ))}
-      </div>
+          )}
+          {filtered.map((job) => (
+            <button
+              key={job.ID}
+              onClick={() => onSelectJob(job.ID)}
+              className="w-full text-left flex items-center gap-4 p-3 transition-colors border-l-2"
+              style={{
+                borderLeftColor: STATUS_COLOR[job.Status] || "#71717A",
+                backgroundColor: selectedJobId === job.ID ? "#1A1A22" : "var(--surface)",
+              }}
+            >
+              <span className="text-lg text-[var(--text-muted)] w-5 text-center">
+                {TYPE_ICONS[job.Type] || "•"}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{job.Type}</div>
+                <div className="font-mono text-xs text-[var(--text-muted)] truncate">
+                  {job.ID}
+                </div>
+              </div>
+              <StatusDot status={job.Status} />
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                {job.Attempts}/{job.MaxAttempts}
+              </span>
+              <span className="text-xs text-[var(--text-muted)] w-36 text-right font-mono">
+                {formatDateTime(job.CreatedAt)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

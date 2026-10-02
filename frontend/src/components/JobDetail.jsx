@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { getJob, getJobEvents, cancelJob } from "../api/jobsApi";
 import StatusDot from "./StatusDot";
+import useToast from "../hooks/useToast";
 
 function formatDateTime(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString([], {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -31,7 +36,12 @@ function ResultView({ type, result }) {
   if (type === "generate_pdf_report" && result.pdf_base64) {
     return (
       <button
-        onClick={() => downloadBlob(base64ToBlob(result.pdf_base64, "application/pdf"), `${result.title || "report"}.pdf`)}
+        onClick={() =>
+          downloadBlob(
+            base64ToBlob(result.pdf_base64, "application/pdf"),
+            `${result.title || "report"}.pdf`
+          )
+        }
         className="text-sm text-[var(--accent)] border border-[var(--accent)]/30 rounded-md px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors"
       >
         ↓ Download PDF
@@ -42,7 +52,9 @@ function ResultView({ type, result }) {
   if (type === "csv_export" && result.csv_base64) {
     return (
       <button
-        onClick={() => downloadBlob(base64ToBlob(result.csv_base64, "text/csv"), "export.csv")}
+        onClick={() =>
+          downloadBlob(base64ToBlob(result.csv_base64, "text/csv"), "export.csv")
+        }
         className="text-sm text-[var(--accent)] border border-[var(--accent)]/30 rounded-md px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors"
       >
         ↓ Download CSV ({result.row_count} rows)
@@ -71,8 +83,9 @@ export default function JobDetail({ jobId, onClose, onChanged }) {
   const [job, setJob] = useState(null);
   const [events, setEvents] = useState([]);
   const [cancelling, setCancelling] = useState(false);
+  const showToast = useToast();
 
-useEffect(() => {
+  useEffect(() => {
     if (!jobId) return;
 
     async function fetchDetail() {
@@ -94,13 +107,12 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, [jobId]);
 
-
-async function handleCancel() {
+  async function handleCancel() {
     if (!jobId) return;
     setCancelling(true);
     try {
       await cancelJob(jobId);
-      
+
       const [jobData, eventsData] = await Promise.all([
         getJob(jobId),
         getJobEvents(jobId),
@@ -108,9 +120,10 @@ async function handleCancel() {
       setJob(jobData);
       setEvents(eventsData || []);
 
+      showToast("Job cancelled");
       onChanged?.();
     } catch (err) {
-      alert("Failed to cancel: " + err.message);
+      showToast("Failed to cancel: " + err.message, "error");
     } finally {
       setCancelling(false);
     }
@@ -141,7 +154,10 @@ async function handleCancel() {
         </div>
         <div className="flex items-center gap-3">
           <StatusDot status={job.Status} />
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text)] text-sm">
+          <button
+            onClick={onClose}
+            className="text-[var(--text-muted)] hover:text-[var(--text)] text-sm"
+          >
             ✕
           </button>
         </div>
@@ -150,7 +166,9 @@ async function handleCancel() {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <div className="text-xs text-[var(--text-muted)]">Attempts</div>
-          <div className="font-mono mt-0.5">{job.Attempts} / {job.MaxAttempts}</div>
+          <div className="font-mono mt-0.5">
+            {job.Attempts} / {job.MaxAttempts}
+          </div>
         </div>
         <div>
           <div className="text-xs text-[var(--text-muted)]">Created</div>
@@ -169,10 +187,10 @@ async function handleCancel() {
 
       {job.Result && (
         <div>
-            <div className="text-xs text-[var(--text-muted)] mb-1">Result</div>
-            <ResultView type={job.Type} result={job.Result} />
+          <div className="text-xs text-[var(--text-muted)] mb-1">Result</div>
+          <ResultView type={job.Type} result={job.Result} />
         </div>
-        )}
+      )}
 
       <div>
         <div className="text-xs text-[var(--text-muted)] mb-2">History</div>
