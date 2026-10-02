@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -55,7 +56,7 @@ func main() {
 	registry.Register("classify_sentiment", jobHandlers.HandleClassifySentiment)
 	registry.Register("translate_text", jobHandlers.HandleTranslateText)
 	registry.Register("classify_toxic_comment", jobHandlers.HandleClassifyToxicComment)
-	workerPool := worker.NewPool(jobStore, registry, 3)
+	workerPool := worker.NewPool(jobStore, registry, 5)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerPool.Start(ctx)
 
@@ -86,6 +87,21 @@ func main() {
 		log.Println("HTTP server listening on :8080")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP server error: %v", err)
+		}
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				recovered, err := jobStore.RecoverStaleJobs(ctx, 5*time.Minute)
+				if err != nil {
+					log.Printf("stale job recovery error: %v", err)
+				} else if recovered > 0 {
+					log.Printf("recovered %d stale job(s)", recovered)
+				}
+			}
 		}
 	}()
 

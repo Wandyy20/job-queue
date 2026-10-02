@@ -6,6 +6,7 @@ import (
 
 	"github.com/Wandyy20/job-queue/models"
 	"github.com/google/uuid"
+	"time"
 )
 
 type JobStore interface {
@@ -16,6 +17,7 @@ type JobStore interface {
 	GetByID(ctx context.Context, jobID uuid.UUID) (*models.Job, error)
 	List(ctx context.Context, status string) ([]*models.Job, error)
 	Cancel(ctx context.Context, jobID uuid.UUID) error
+	RecoverStaleJobs(ctx context.Context, staleDuration time.Duration) (int64, error)
 }
 
 type JobEventStore interface {

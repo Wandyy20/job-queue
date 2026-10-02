@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/Wandyy20/job-queue/models"
 	"github.com/google/uuid"
@@ -235,4 +236,16 @@ func (s *PostgresJobStore) Cancel(ctx context.Context, jobID uuid.UUID) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+func (s *PostgresJobStore) RecoverStaleJobs(ctx context.Context, staleDuration time.Duration) (int64, error) {
+	result, err := s.db.Exec(ctx, `
+		UPDATE jobs
+		SET status = 'pending', locked_at = NULL, locked_by = NULL, run_at = now()
+		WHERE status = 'processing' AND locked_at < now() - $1::interval
+	`, staleDuration.String())
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
