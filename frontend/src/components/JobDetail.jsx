@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { getJob, getJobEvents, cancelJob } from "../api/jobsApi";
 import StatusDot from "./StatusDot";
 
@@ -9,36 +9,105 @@ function formatDateTime(value) {
   });
 }
 
+function base64ToBlob(base64, mime) {
+  const byteChars = atob(base64);
+  const byteNumbers = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) {
+    byteNumbers[i] = byteChars.charCodeAt(i);
+  }
+  return new Blob([new Uint8Array(byteNumbers)], { type: mime });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ResultView({ type, result }) {
+  if (type === "generate_pdf_report" && result.pdf_base64) {
+    return (
+      <button
+        onClick={() => downloadBlob(base64ToBlob(result.pdf_base64, "application/pdf"), `${result.title || "report"}.pdf`)}
+        className="text-sm text-[var(--accent)] border border-[var(--accent)]/30 rounded-md px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors"
+      >
+        ↓ Download PDF
+      </button>
+    );
+  }
+
+  if (type === "csv_export" && result.csv_base64) {
+    return (
+      <button
+        onClick={() => downloadBlob(base64ToBlob(result.csv_base64, "text/csv"), "export.csv")}
+        className="text-sm text-[var(--accent)] border border-[var(--accent)]/30 rounded-md px-3 py-1.5 hover:bg-[var(--accent)]/10 transition-colors"
+      >
+        ↓ Download CSV ({result.row_count} rows)
+      </button>
+    );
+  }
+
+  if (type === "resize_image" && result.resized_image_base64) {
+    return (
+      <img
+        src={`data:image/png;base64,${result.resized_image_base64}`}
+        alt="resized"
+        className="rounded-md border border-[var(--border)] max-w-full"
+      />
+    );
+  }
+
+  return (
+    <pre className="font-mono text-xs bg-[var(--bg)] border border-[var(--border)] rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-words">
+      {JSON.stringify(result, null, 2)}
+    </pre>
+  );
+}
+
 export default function JobDetail({ jobId, onClose, onChanged }) {
   const [job, setJob] = useState(null);
   const [events, setEvents] = useState([]);
   const [cancelling, setCancelling] = useState(false);
 
-  const fetchDetail = useCallback(async () => {
+useEffect(() => {
     if (!jobId) return;
+
+    async function fetchDetail() {
+      try {
+        const [jobData, eventsData] = await Promise.all([
+          getJob(jobId),
+          getJobEvents(jobId),
+        ]);
+        setJob(jobData);
+        setEvents(eventsData || []);
+      } catch (err) {
+        console.error("Failed to fetch job detail:", err);
+      }
+    }
+
+    fetchDetail();
+    const interval = setInterval(fetchDetail, 3000);
+
+    return () => clearInterval(interval);
+  }, [jobId]);
+
+
+async function handleCancel() {
+    if (!jobId) return;
+    setCancelling(true);
     try {
+      await cancelJob(jobId);
+      
       const [jobData, eventsData] = await Promise.all([
         getJob(jobId),
         getJobEvents(jobId),
       ]);
       setJob(jobData);
       setEvents(eventsData || []);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [jobId]);
 
-  useEffect(() => {
-    fetchDetail();
-    const interval = setInterval(fetchDetail, 3000);
-    return () => clearInterval(interval);
-  }, [fetchDetail]);
-
-  async function handleCancel() {
-    setCancelling(true);
-    try {
-      await cancelJob(jobId);
-      await fetchDetail();
       onChanged?.();
     } catch (err) {
       alert("Failed to cancel: " + err.message);
@@ -100,12 +169,10 @@ export default function JobDetail({ jobId, onClose, onChanged }) {
 
       {job.Result && (
         <div>
-          <div className="text-xs text-[var(--text-muted)] mb-1">Result</div>
-          <pre className="font-mono text-xs bg-[var(--bg)] border border-[var(--border)] rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-words">
-            {JSON.stringify(job.Result, null, 2)}
-          </pre>
+            <div className="text-xs text-[var(--text-muted)] mb-1">Result</div>
+            <ResultView type={job.Type} result={job.Result} />
         </div>
-      )}
+        )}
 
       <div>
         <div className="text-xs text-[var(--text-muted)] mb-2">History</div>

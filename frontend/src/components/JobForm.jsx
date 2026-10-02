@@ -77,18 +77,25 @@ export default function JobForm({ onJobCreated }) {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await createJob(type, buildPayload());
-      setValues({});
-      onJobCreated?.();
-    } catch (err) {
-      alert("Failed to submit job: " + err.message);
-    } finally {
-      setSubmitting(false);
-    }
+  e.preventDefault();
+
+  const emptyField = activeType.fields.find((f) => !values[f] || !values[f].trim());
+  if (emptyField) {
+    alert(`${FIELD_LABELS[emptyField] || emptyField} is required`);
+    return;
   }
+
+  setSubmitting(true);
+  try {
+    await createJob(type, buildPayload());
+    setValues({});
+    onJobCreated?.();
+  } catch (err) {
+    alert("Failed to submit job: " + err.message);
+  } finally {
+    setSubmitting(false);
+  }
+}
 
   return (
     <form

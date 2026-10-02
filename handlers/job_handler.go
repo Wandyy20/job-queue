@@ -33,6 +33,15 @@ func (h *JobHandler) CreateJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Type == "" {
+		http.Error(w, "type is required", http.StatusBadRequest)
+		return
+	}
+	if len(req.Payload) == 0 {
+		http.Error(w, "payload is required", http.StatusBadRequest)
+		return
+	}
+
 	if req.MaxAttempts == 0 {
 		req.MaxAttempts = 5
 	}
